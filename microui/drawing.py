@@ -140,69 +140,82 @@ def render_commands(ctx):
         elif cmd.type == MU_COMMAND_CANVAS_CIRCLE:
             _render_canvas_circle(ctx, cmd, clip_rect)
         
+        elif cmd.type == MU_COMMAND_CANVAS_TEXT:
+            _render_canvas_text(ctx, cmd, clip_rect)
+        
         
 def _render_pixel(ctx, cmd, clip_rect):
     """Render pixel to framebuffer"""
-    #if clip_rect and not point_in_rect(cmd.pos, clip_rect):
-    #    return
+    # Translate canvas coordinates to screen coordinates
+    screen_x = int(cmd.canvas_rect.x + cmd.x)
+    screen_y = int(cmd.canvas_rect.y + cmd.y)
     
-    rgb565 = cmd.color.to_rgb565()
-    #ctx.framebuffer.pixel(cmd.pos.x, cmd.pos.y, rgb565)
-    ctx.framebuffer.pixel(cmd.x, cmd.y, rgb565)
+    rgb565 = int(cmd.color.to_rgb565())
+    ctx.framebuffer.pixel(screen_x, screen_y, rgb565)
+
 
 def _render_line(ctx, cmd, clip_rect):
     """Render line to framebuffer"""
-    # Simple clipping: skip if both endpoints are outside clip rect
-    #if clip_rect:
-    #    if not (point_in_rect(cmd.start, clip_rect) or point_in_rect(cmd.end, clip_rect)):
-    #        return
+    # Translate canvas coordinates to screen coordinates
+    screen_x1 = int(cmd.canvas_rect.x + cmd.x1)
+    screen_y1 = int(cmd.canvas_rect.y + cmd.y1)
+    screen_x2 = int(cmd.canvas_rect.x + cmd.x2)
+    screen_y2 = int(cmd.canvas_rect.y + cmd.y2)
     
-    rgb565 = cmd.color.to_rgb565()
-    #ctx.framebuffer.line(cmd.start.x, cmd.start.y, cmd.end.x, cmd.end.y, rgb565)
-    ctx.framebuffer.line(cmd.x1, cmd.y1, cmd.x2, cmd.y2, rgb565)
+    rgb565 = int(cmd.color.to_rgb565())
+    ctx.framebuffer.line(screen_x1, screen_y1, screen_x2, screen_y2, rgb565)
+
 
 def _render_canvas_rect(ctx, cmd, clip_rect):
     """Render canvas rectangle to framebuffer"""
-    rect = cmd.canvas_rect
-    #if clip_rect:
-    #    rect = intersect_rects(rect, clip_rect)
+    # Translate canvas coordinates to screen coordinates
+    screen_x = int(cmd.canvas_rect.x + cmd.x)
+    screen_y = int(cmd.canvas_rect.y + cmd.y)
     
-    if rect.w <= 0 or rect.h <= 0:
-        return
+    rgb565 = int(cmd.color.to_rgb565())
     
-    rgb565 = cmd.color.to_rgb565()
-    
-    # Draw rectangle outline
-    #ctx.framebuffer.rect(rect.x, rect.y, rect.w, rect.h, rgb565)
-    ctx.framebuffer.line(rect.x, rect.y, rect.x + rect.w - 1, rect.y, rgb565)
-    # Bottom
-    ctx.framebuffer.line(rect.x, rect.y + rect.h - 1, rect.x + rect.w - 1, rect.y + rect.h - 1, rgb565)
-    # Left
-    ctx.framebuffer.line(rect.x, rect.y, rect.x, rect.y + rect.h - 1, rgb565)
-    # Right
-    ctx.framebuffer.line(rect.x + rect.w - 1, rect.y, rect.x + rect.w - 1, rect.y + rect.h - 1, rgb565)
+    if cmd.filled:
+        # Draw filled rectangle
+        ctx.framebuffer.fill_rect(screen_x, screen_y, int(cmd.w), int(cmd.h), rgb565)
+    else:
+        # Draw rectangle outline
+        # Top
+        ctx.framebuffer.line(screen_x, screen_y, int(screen_x + cmd.w - 1), screen_y, rgb565)
+        # Bottom
+        ctx.framebuffer.line(screen_x, int(screen_y + cmd.h - 1), int(screen_x + cmd.w - 1), int(screen_y + cmd.h - 1), rgb565)
+        # Left
+        ctx.framebuffer.line(screen_x, screen_y, screen_x, int(screen_y + cmd.h - 1), rgb565)
+        # Right
+        ctx.framebuffer.line(int(screen_x + cmd.w - 1), screen_y, int(screen_x + cmd.w - 1), int(screen_y + cmd.h - 1), rgb565)
 
 
 def _render_canvas_circle(ctx, cmd, clip_rect):
     """Render canvas circle to framebuffer"""
-    #center = cmd.center
-    center_x = cmd.x
-    center_y = cmd.y
+    # Translate canvas coordinates to screen coordinates
+    screen_x = int(cmd.canvas_rect.x + cmd.x)
+    screen_y = int(cmd.canvas_rect.y + cmd.y)
     
-    radius = cmd.radius
+    rgb565 = int(cmd.color.to_rgb565())
     
-    # Simple bounding box clipping
-    bounding_rect = Rect(center_x - radius, center_y - radius, radius * 2, radius * 2)
-    if clip_rect:
-        bounding_rect = intersect_rects(bounding_rect, clip_rect)
+    if cmd.filled:
+        # For filled circles, we need to draw multiple circles or use a fill algorithm
+        # Since framebuf.ellipse only draws outline, we'll fill by drawing concentric circles
+#         for r in range(cmd.radius, 0, -1):
+        ctx.framebuffer.ellipse(screen_x, screen_y, int(cmd.radius), int(cmd.radius), rgb565, 1, 0x0F)
+    else:
+        # Draw circle outline using ellipse
+        ctx.framebuffer.ellipse(screen_x, screen_y, int(cmd.radius), int(cmd.radius), rgb565, 0, 0x0F)
+
+
+def _render_canvas_text(ctx, cmd, clip_rect):
+    """Render canvas text to framebuffer"""
+    # Translate canvas coordinates to screen coordinates
+    screen_x = int(cmd.canvas_rect.x + cmd.x)
+    screen_y = int(cmd.canvas_rect.y + cmd.y)
     
-    if bounding_rect.w <= 0 or bounding_rect.h <= 0:
-        return
-    
-    rgb565 = cmd.color.to_rgb565()
-    
-    # Draw usin ellipse
-    ctx.framebuffer.ellipse(center_x, center_y, radius, radius, rgb565)
+    rgb565 = int(cmd.color.to_rgb565())
+    ctx.framebuffer.text(cmd.text, screen_x, screen_y, rgb565)
+
 
 def _render_rect(ctx, rect, color, clip_rect):
     """Render rectangle to framebuffer"""
@@ -213,10 +226,10 @@ def _render_rect(ctx, rect, color, clip_rect):
         return
     
     # Convert color to RGB565
-    rgb565 = color.to_rgb565()
+    rgb565 = int(color.to_rgb565())
     
     # Fill rectangle
-    ctx.framebuffer.fill_rect(rect.x, rect.y, rect.w, rect.h, rgb565)
+    ctx.framebuffer.fill_rect(int(rect.x), int(rect.y), int(rect.w), int(rect.h), rgb565)
 
 
 def _render_text(ctx, cmd, clip_rect):
@@ -232,10 +245,10 @@ def _render_text(ctx, cmd, clip_rect):
         return
     
     # Convert color to RGB565
-    rgb565 = cmd.color.to_rgb565()
+    rgb565 = int(cmd.color.to_rgb565())
     
     # Draw text
-    ctx.framebuffer.text(cmd.text, cmd.pos.x, cmd.pos.y, rgb565)
+    ctx.framebuffer.text(cmd.text, int(cmd.pos.x), int(cmd.pos.y), rgb565)
 
 
 def _render_icon(ctx, cmd, clip_rect):
@@ -248,42 +261,42 @@ def _render_icon(ctx, cmd, clip_rect):
     if rect.w <= 0 or rect.h <= 0:
         return
     
-    rgb565 = cmd.color.to_rgb565()
+    rgb565 = int(cmd.color.to_rgb565())
     
     # Draw simple icon shapes
     if cmd.id == MU_ICON_CLOSE:
         # X shape
-        x1, y1 = rect.x + 2, rect.y + 2
-        x2, y2 = rect.x + rect.w - 2, rect.y + rect.h - 2
+        x1, y1 = int(rect.x + 2), int(rect.y + 2)
+        x2, y2 = int(rect.x + rect.w - 2), int(rect.y + rect.h - 2)
         ctx.framebuffer.line(x1, y1, x2, y2, rgb565)
         ctx.framebuffer.line(x2, y1, x1, y2, rgb565)
         
     elif cmd.id == MU_ICON_CHECK:
         # Checkmark
-        x1 = rect.x + rect.w // 4
-        y1 = rect.y + rect.h // 2
-        x2 = rect.x + rect.w // 2
-        y2 = rect.y + rect.h - 3
-        x3 = rect.x + rect.w - 3
-        y3 = rect.y + 3
+        x1 = int(rect.x + rect.w // 4)
+        y1 = int(rect.y + rect.h // 2)
+        x2 = int(rect.x + rect.w // 2)
+        y2 = int(rect.y + rect.h - 3)
+        x3 = int(rect.x + rect.w - 3)
+        y3 = int(rect.y + 3)
         ctx.framebuffer.line(x1, y1, x2, y2, rgb565)
         ctx.framebuffer.line(x2, y2, x3, y3, rgb565)
         
     elif cmd.id == MU_ICON_COLLAPSED:
         # Right arrow
-        x = rect.x + rect.w // 3
-        y = rect.y + rect.h // 2
-        for i in range(rect.h // 3):
-            ctx.framebuffer.line(x, y - i, x + i, y, rgb565)
-            ctx.framebuffer.line(x, y + i, x + i, y, rgb565)
+        x = int(rect.x + rect.w // 3)
+        y = int(rect.y + rect.h // 2)
+        for i in range(int(rect.h // 3)):
+            ctx.framebuffer.line(x, int(y - i), int(x + i), y, rgb565)
+            ctx.framebuffer.line(x, int(y + i), int(x + i), y, rgb565)
             
     elif cmd.id == MU_ICON_EXPANDED:
         # Down arrow
-        x = rect.x + rect.w // 2
-        y = rect.y + rect.h // 3
-        for i in range(rect.w // 3):
-            ctx.framebuffer.line(x - i, y, x, y + i, rgb565)
-            ctx.framebuffer.line(x + i, y, x, y + i, rgb565)
+        x = int(rect.x + rect.w // 2)
+        y = int(rect.y + rect.h // 3)
+        for i in range(int(rect.w // 3)):
+            ctx.framebuffer.line(int(x - i), y, x, int(y + i), rgb565)
+            ctx.framebuffer.line(int(x + i), y, x, int(y + i), rgb565)
 
 
 # Import get_clip_rect from context

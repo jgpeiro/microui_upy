@@ -404,7 +404,7 @@ from microui.layout import layout_row, layout_next
 from microui.controls import button_ex, draw_control_frame, draw_control_text, update_control
 from microui.windows import begin_window_ex, end_window
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 # Hardware pins
@@ -1098,8 +1098,13 @@ def draw_form_ui(ctx, state):
         
         end_window(ctx)
 
-from demo_physics_mru_mrua import update_ui
-from demo_physics_mru_mrua import ui_state
+# from demo_physics_mru_mrua import update_ui
+# from demo_physics_mru_mrua import ui_state
+from demo_4_ui import update_ui
+from demo_4_ui import ui_state
+
+# from demo_5_ui import update_ui
+# from demo_5_ui import ui_state
 
 state = ui_state
 draw_form_ui = update_ui
@@ -1205,7 +1210,10 @@ class App:
 
         last_pressed = False
         n = 0
+        t0 = time.ticks_ms()
+        dt = 0
         while( 1 ):
+            t0 = time.ticks_ms()
             pressed, x, y = self.touch.read()
             if( pressed and not last_pressed ):
                 log.info(f"Touch down: ({x}, {y})")
@@ -1234,7 +1242,10 @@ class App:
                 pass
             
             last_pressed = pressed
-            await asyncio.sleep_ms(10)
+#             await asyncio.sleep_ms(10)
+            t1 = time.ticks_ms()
+            dt = dt*0.75 + (t1-t0)*0.25
+            print( "t1-t0", int(1000/(t1-t0)), int(1000/dt) )
         
         while True:
             try:
