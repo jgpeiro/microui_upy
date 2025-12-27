@@ -15,8 +15,12 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from microui import *
 from microui.core import (
     MU_COMMAND_JUMP, MU_COMMAND_CLIP, MU_COMMAND_RECT, 
-    MU_COMMAND_TEXT, MU_COMMAND_ICON
+    MU_COMMAND_TEXT, MU_COMMAND_ICON,
+    MU_COMMAND_CANVAS_PIXEL, MU_COMMAND_CANVAS_LINE, 
+    MU_COMMAND_CANVAS_RECT, MU_COMMAND_CANVAS_CIRCLE, 
+    MU_COMMAND_CANVAS_TEXT
 )
+
 
 # Configure logging
 logging.basicConfig(
@@ -30,7 +34,7 @@ app = Flask(__name__)
 CORS(app)
 
 # UI state
-ui_state = {
+_ui_state = {
     'checkbox1': False,
     'checkbox2': True,
     'slider_value': 50.0,
@@ -61,7 +65,7 @@ def init_context():
     logger.info(f"Context initialized: {WIDTH}x{HEIGHT}")
 
 
-def update_ui(ctx):
+def _update_ui(ctx):
     """Main UI update function"""
     global ui_state
     
@@ -82,7 +86,7 @@ def update_ui(ctx):
         
         # Checkboxes
         layout_row(ctx, 1, [-1], 0)
-        res, ui_state['checkbox1'] = checkbox(ctx, "Option 1", ui_state['checkbox1'])
+        res, ui_state['checkbox1'] = checkbox(ctx, "oooo 1", ui_state['checkbox1'])
         if res & MU_RES_CHANGE:
             logger.info(f"Checkbox 1: {ui_state['checkbox1']}")
         
@@ -115,6 +119,8 @@ def update_ui(ctx):
         
         end_window(ctx)
 
+from demo_4_ui import update_ui
+from demo_4_ui import ui_state
 
 def serialize_commands(ctx):
     """Convert command list to JSON-serializable format"""
@@ -171,6 +177,89 @@ def serialize_commands(ctx):
                 'b': cmd.color.b,
                 'a': cmd.color.a
             }
+        elif cmd.type == MU_COMMAND_CANVAS_PIXEL:
+            cmd_data['canvas_rect'] = {
+                'x': cmd.canvas_rect.x,
+                'y': cmd.canvas_rect.y,
+                'w': cmd.canvas_rect.w,
+                'h': cmd.canvas_rect.h
+            }
+            cmd_data['x'] = cmd.x
+            cmd_data['y'] = cmd.y
+            cmd_data['color'] = {
+                'r': cmd.color.r,
+                'g': cmd.color.g,
+                'b': cmd.color.b,
+                'a': cmd.color.a
+            }
+        elif cmd.type == MU_COMMAND_CANVAS_LINE:
+            cmd_data['canvas_rect'] = {
+                'x': cmd.canvas_rect.x,
+                'y': cmd.canvas_rect.y,
+                'w': cmd.canvas_rect.w,
+                'h': cmd.canvas_rect.h
+            }
+            cmd_data['x1'] = cmd.x1
+            cmd_data['y1'] = cmd.y1
+            cmd_data['x2'] = cmd.x2
+            cmd_data['y2'] = cmd.y2
+            cmd_data['color'] = {
+                'r': cmd.color.r,
+                'g': cmd.color.g,
+                'b': cmd.color.b,
+                'a': cmd.color.a
+            }
+        elif cmd.type == MU_COMMAND_CANVAS_RECT:
+            cmd_data['canvas_rect'] = {
+                'x': cmd.canvas_rect.x,
+                'y': cmd.canvas_rect.y,
+                'w': cmd.canvas_rect.w,
+                'h': cmd.canvas_rect.h
+            }
+            cmd_data['x'] = cmd.x
+            cmd_data['y'] = cmd.y
+            cmd_data['w'] = cmd.w
+            cmd_data['h'] = cmd.h
+            cmd_data['filled'] = cmd.filled
+            cmd_data['color'] = {
+                'r': cmd.color.r,
+                'g': cmd.color.g,
+                'b': cmd.color.b,
+                'a': cmd.color.a
+            }
+        elif cmd.type == MU_COMMAND_CANVAS_CIRCLE:
+            cmd_data['canvas_rect'] = {
+                'x': cmd.canvas_rect.x,
+                'y': cmd.canvas_rect.y,
+                'w': cmd.canvas_rect.w,
+                'h': cmd.canvas_rect.h
+            }
+            cmd_data['x'] = cmd.x
+            cmd_data['y'] = cmd.y
+            cmd_data['radius'] = cmd.radius
+            cmd_data['filled'] = cmd.filled
+            cmd_data['color'] = {
+                'r': cmd.color.r,
+                'g': cmd.color.g,
+                'b': cmd.color.b,
+                'a': cmd.color.a
+            }
+        elif cmd.type == MU_COMMAND_CANVAS_TEXT:
+            cmd_data['canvas_rect'] = {
+                'x': cmd.canvas_rect.x,
+                'y': cmd.canvas_rect.y,
+                'w': cmd.canvas_rect.w,
+                'h': cmd.canvas_rect.h
+            }
+            cmd_data['x'] = cmd.x
+            cmd_data['y'] = cmd.y
+            cmd_data['text'] = cmd.text
+            cmd_data['color'] = {
+                'r': cmd.color.r,
+                'g': cmd.color.g,
+                'b': cmd.color.b,
+                'a': cmd.color.a
+            }
         
         commands.append(cmd_data)
     
@@ -200,10 +289,18 @@ def render():
             input_mousemove(ctx, x, y)
         elif event_type == 'mousedown':
             input_mousemove(ctx, x, y)
+            begin(ctx)
+            update_ui(ctx)
+            end(ctx)
+
             if button == 0:  # Left button
                 input_mousedown(ctx, x, y, MU_MOUSE_LEFT)
         elif event_type == 'mouseup':
             input_mousemove(ctx, x, y)
+            begin(ctx)
+            update_ui(ctx)
+            end(ctx)
+            
             if button == 0:  # Left button
                 input_mouseup(ctx, x, y, MU_MOUSE_LEFT)
         

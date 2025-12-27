@@ -51,6 +51,7 @@ __all__ = [
     'text', 'label', 'button', 'button_ex', 'checkbox',
     'slider', 'slider_ex', 'header', 'header_ex',
     'begin_treenode', 'begin_treenode_ex', 'end_treenode',
+    'canvas', 'CanvasContext',
     
     # Windows
     'begin_window', 'begin_window_ex', 'end_window',

@@ -34,6 +34,11 @@ MU_COMMAND_CLIP = const(2)
 MU_COMMAND_RECT = const(3)
 MU_COMMAND_TEXT = const(4)
 MU_COMMAND_ICON = const(5)
+MU_COMMAND_CANVAS_PIXEL = const(6)
+MU_COMMAND_CANVAS_LINE = const(7)
+MU_COMMAND_CANVAS_RECT = const(8)
+MU_COMMAND_CANVAS_CIRCLE = const(9)
+MU_COMMAND_CANVAS_TEXT = const(10)
 
 # Color IDs
 MU_COLOR_TEXT = const(0)
@@ -195,6 +200,64 @@ class IconCommand(Command):
         super().__init__(MU_COMMAND_ICON, 0)
         self.id = icon_id
         self.rect = rect
+        self.color = color
+
+
+class CanvasPixelCommand(Command):
+    """Canvas pixel command"""
+    def __init__(self, canvas_rect, x, y, color):
+        super().__init__(MU_COMMAND_CANVAS_PIXEL, 0)
+        self.canvas_rect = canvas_rect
+        self.x = x
+        self.y = y
+        self.color = color
+
+
+class CanvasLineCommand(Command):
+    """Canvas line command"""
+    def __init__(self, canvas_rect, x1, y1, x2, y2, color):
+        super().__init__(MU_COMMAND_CANVAS_LINE, 0)
+        self.canvas_rect = canvas_rect
+        self.x1 = x1
+        self.y1 = y1
+        self.x2 = x2
+        self.y2 = y2
+        self.color = color
+
+
+class CanvasRectCommand(Command):
+    """Canvas rectangle command"""
+    def __init__(self, canvas_rect, x, y, w, h, color, filled=True):
+        super().__init__(MU_COMMAND_CANVAS_RECT, 0)
+        self.canvas_rect = canvas_rect
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h
+        self.color = color
+        self.filled = filled
+
+
+class CanvasCircleCommand(Command):
+    """Canvas circle command"""
+    def __init__(self, canvas_rect, x, y, radius, color, filled=True):
+        super().__init__(MU_COMMAND_CANVAS_CIRCLE, 0)
+        self.canvas_rect = canvas_rect
+        self.x = x
+        self.y = y
+        self.radius = radius
+        self.color = color
+        self.filled = filled
+
+
+class CanvasTextCommand(Command):
+    """Canvas text command"""
+    def __init__(self, canvas_rect, x, y, text, color):
+        super().__init__(MU_COMMAND_CANVAS_TEXT, 0)
+        self.canvas_rect = canvas_rect
+        self.x = x
+        self.y = y
+        self.text = text
         self.color = color
 
 

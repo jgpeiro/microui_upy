@@ -413,6 +413,177 @@ class TestDrawing(unittest.TestCase):
         render_commands(self.ctx)
 
 
+class TestCanvas(unittest.TestCase):
+    """Test canvas widget"""
+    
+    def setUp(self):
+        from microui.core import Context
+        import framebuf
+        
+        # Create a framebuffer for testing
+        buffer = bytearray(240 * 320 * 2)
+        fb = framebuf.FrameBuffer(buffer, 240, 320, framebuf.RGB565)
+        
+        self.ctx = Context(mock_text_width, mock_text_height, fb)
+    
+    def test_canvas_creation(self):
+        """Test canvas widget creation"""
+        from microui.controls import canvas
+        from microui.context import begin, end
+        from microui.windows import begin_window, end_window
+        from microui.core import Rect
+        
+        begin(self.ctx)
+        
+        if begin_window(self.ctx, "Test", Rect(10, 10, 200, 200)):
+            cv = canvas(self.ctx, 100, 100)
+            self.assertIsNotNone(cv)
+            self.assertEqual(cv.rect.w, 100)
+            self.assertEqual(cv.rect.h, 100)
+            end_window(self.ctx)
+        
+        end(self.ctx)
+    
+    def test_canvas_pixel(self):
+        """Test canvas pixel drawing"""
+        from microui.controls import canvas, CanvasContext
+        from microui.context import begin, end
+        from microui.windows import begin_window, end_window
+        from microui.core import Rect, Color, MU_COMMAND_CANVAS_PIXEL
+        
+        begin(self.ctx)
+        
+        if begin_window(self.ctx, "Test", Rect(10, 10, 200, 200)):
+            cv = canvas(self.ctx, 100, 100)
+            cv.pixel(10, 20, (255, 0, 0, 255))
+            end_window(self.ctx)
+        
+        end(self.ctx)
+        
+        # Check that pixel command was created
+        found = False
+        for cmd in self.ctx.command_list:
+            if cmd.type == MU_COMMAND_CANVAS_PIXEL:
+                self.assertEqual(cmd.x, 10)
+                self.assertEqual(cmd.y, 20)
+                self.assertEqual(cmd.color.r, 255)
+                found = True
+                break
+        self.assertTrue(found, "Pixel command not found")
+    
+    def test_canvas_line(self):
+        """Test canvas line drawing"""
+        from microui.controls import canvas
+        from microui.context import begin, end
+        from microui.windows import begin_window, end_window
+        from microui.core import Rect, MU_COMMAND_CANVAS_LINE
+        
+        begin(self.ctx)
+        
+        if begin_window(self.ctx, "Test", Rect(10, 10, 200, 200)):
+            cv = canvas(self.ctx, 100, 100)
+            cv.line(0, 0, 50, 50, (0, 255, 0, 255))
+            end_window(self.ctx)
+        
+        end(self.ctx)
+        
+        # Check that line command was created
+        found = False
+        for cmd in self.ctx.command_list:
+            if cmd.type == MU_COMMAND_CANVAS_LINE:
+                self.assertEqual(cmd.x1, 0)
+                self.assertEqual(cmd.y1, 0)
+                self.assertEqual(cmd.x2, 50)
+                self.assertEqual(cmd.y2, 50)
+                found = True
+                break
+        self.assertTrue(found, "Line command not found")
+    
+    def test_canvas_rectangle(self):
+        """Test canvas rectangle drawing"""
+        from microui.controls import canvas
+        from microui.context import begin, end
+        from microui.windows import begin_window, end_window
+        from microui.core import Rect, MU_COMMAND_CANVAS_RECT
+        
+        begin(self.ctx)
+        
+        if begin_window(self.ctx, "Test", Rect(10, 10, 200, 200)):
+            cv = canvas(self.ctx, 100, 100)
+            cv.rectangle(10, 10, 30, 20, (0, 0, 255, 255), filled=True)
+            end_window(self.ctx)
+        
+        end(self.ctx)
+        
+        # Check that rectangle command was created
+        found = False
+        for cmd in self.ctx.command_list:
+            if cmd.type == MU_COMMAND_CANVAS_RECT:
+                self.assertEqual(cmd.x, 10)
+                self.assertEqual(cmd.y, 10)
+                self.assertEqual(cmd.w, 30)
+                self.assertEqual(cmd.h, 20)
+                self.assertTrue(cmd.filled)
+                found = True
+                break
+        self.assertTrue(found, "Rectangle command not found")
+    
+    def test_canvas_circle(self):
+        """Test canvas circle drawing"""
+        from microui.controls import canvas
+        from microui.context import begin, end
+        from microui.windows import begin_window, end_window
+        from microui.core import Rect, MU_COMMAND_CANVAS_CIRCLE
+        
+        begin(self.ctx)
+        
+        if begin_window(self.ctx, "Test", Rect(10, 10, 200, 200)):
+            cv = canvas(self.ctx, 100, 100)
+            cv.circle(50, 50, 25, (255, 255, 0, 255), filled=False)
+            end_window(self.ctx)
+        
+        end(self.ctx)
+        
+        # Check that circle command was created
+        found = False
+        for cmd in self.ctx.command_list:
+            if cmd.type == MU_COMMAND_CANVAS_CIRCLE:
+                self.assertEqual(cmd.x, 50)
+                self.assertEqual(cmd.y, 50)
+                self.assertEqual(cmd.radius, 25)
+                self.assertFalse(cmd.filled)
+                found = True
+                break
+        self.assertTrue(found, "Circle command not found")
+    
+    def test_canvas_text(self):
+        """Test canvas text drawing"""
+        from microui.controls import canvas
+        from microui.context import begin, end
+        from microui.windows import begin_window, end_window
+        from microui.core import Rect, MU_COMMAND_CANVAS_TEXT
+        
+        begin(self.ctx)
+        
+        if begin_window(self.ctx, "Test", Rect(10, 10, 200, 200)):
+            cv = canvas(self.ctx, 100, 100)
+            cv.text(5, 5, "Hello", (255, 255, 255, 255))
+            end_window(self.ctx)
+        
+        end(self.ctx)
+        
+        # Check that text command was created
+        found = False
+        for cmd in self.ctx.command_list:
+            if cmd.type == MU_COMMAND_CANVAS_TEXT:
+                self.assertEqual(cmd.x, 5)
+                self.assertEqual(cmd.y, 5)
+                self.assertEqual(cmd.text, "Hello")
+                found = True
+                break
+        self.assertTrue(found, "Canvas text command not found")
+
+
 def add_test_case(suite, test_case_class):
     for attr in dir(test_case_class):
         if attr.startswith("test"):
@@ -429,11 +600,13 @@ def run_tests():
     add_test_case(suite, TestControls)
     add_test_case(suite, TestWindows)
     add_test_case(suite, TestDrawing)
+    add_test_case(suite, TestCanvas)
 
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)
 
     return result.wasSuccessful()
+
 """
 def run_tests():
     suite = unittest.TestSuite()
@@ -445,6 +618,7 @@ def run_tests():
     suite.addTest(TestControls())
     suite.addTest(TestWindows())
     suite.addTest(TestDrawing())
+    suite.addTest(TestCanvas())
 
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)

@@ -80,6 +80,11 @@
         const MU_COMMAND_RECT = 3;
         const MU_COMMAND_TEXT = 4;
         const MU_COMMAND_ICON = 5;
+        const MU_COMMAND_CANVAS_PIXEL = 6;
+        const MU_COMMAND_CANVAS_LINE = 7;
+        const MU_COMMAND_CANVAS_RECT = 8;
+        const MU_COMMAND_CANVAS_CIRCLE = 9;
+        const MU_COMMAND_CANVAS_TEXT = 10;
         
         // Icon constants
         const MU_ICON_CLOSE = 1;
@@ -146,6 +151,26 @@
                     
                     case MU_COMMAND_ICON:
                         drawIcon(cmd.icon_id, cmd.rect, cmd.color);
+                        break;
+                    
+                    case MU_COMMAND_CANVAS_PIXEL:
+                        drawCanvasPixel(cmd.canvas_rect, cmd.x, cmd.y, cmd.color);
+                        break;
+                    
+                    case MU_COMMAND_CANVAS_LINE:
+                        drawCanvasLine(cmd.canvas_rect, cmd.x1, cmd.y1, cmd.x2, cmd.y2, cmd.color);
+                        break;
+                    
+                    case MU_COMMAND_CANVAS_RECT:
+                        drawCanvasRect(cmd.canvas_rect, cmd.x, cmd.y, cmd.w, cmd.h, cmd.color, cmd.filled);
+                        break;
+                    
+                    case MU_COMMAND_CANVAS_CIRCLE:
+                        drawCanvasCircle(cmd.canvas_rect, cmd.x, cmd.y, cmd.radius, cmd.color, cmd.filled);
+                        break;
+                    
+                    case MU_COMMAND_CANVAS_TEXT:
+                        drawCanvasText(cmd.canvas_rect, cmd.x, cmd.y, cmd.text, cmd.color);
                         break;
                 }
             }
@@ -220,6 +245,52 @@
             }
         }
         
+        function drawCanvasPixel(canvasRect, x, y, color) {
+            ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${color.a / 255})`;
+            ctx.fillRect(canvasRect.x + x, canvasRect.y + y, 1, 1);
+        }
+        
+        function drawCanvasLine(canvasRect, x1, y1, x2, y2, color) {
+            ctx.strokeStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${color.a / 255})`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(canvasRect.x + x1, canvasRect.y + y1);
+            ctx.lineTo(canvasRect.x + x2, canvasRect.y + y2);
+            ctx.stroke();
+        }
+        
+        function drawCanvasRect(canvasRect, x, y, w, h, color, filled) {
+            const style = `rgba(${color.r}, ${color.g}, ${color.b}, ${color.a / 255})`;
+            if (filled) {
+                ctx.fillStyle = style;
+                ctx.fillRect(canvasRect.x + x, canvasRect.y + y, w, h);
+            } else {
+                ctx.strokeStyle = style;
+                ctx.lineWidth = 1;
+                ctx.strokeRect(canvasRect.x + x, canvasRect.y + y, w, h);
+            }
+        }
+        
+        function drawCanvasCircle(canvasRect, x, y, radius, color, filled) {
+            const style = `rgba(${color.r}, ${color.g}, ${color.b}, ${color.a / 255})`;
+            ctx.beginPath();
+            ctx.arc(canvasRect.x + x, canvasRect.y + y, radius, 0, 2 * Math.PI);
+            if (filled) {
+                ctx.fillStyle = style;
+                ctx.fill();
+            } else {
+                ctx.strokeStyle = style;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+        }
+        
+        function drawCanvasText(canvasRect, x, y, text, color) {
+            ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${color.a / 255})`;
+            ctx.font = '10px monospace';
+            ctx.fillText(text, canvasRect.x + x, canvasRect.y + y + 8);
+        }
+        
         // Mouse event handlers
         canvas.addEventListener('mousemove', (e) => {
             const rect = canvas.getBoundingClientRect();
@@ -228,8 +299,10 @@
             
             lastMousePos = { x, y };
             mouseEl.textContent = `(${x}, ${y})`;
-            
-            sendEvent('mousemove', x, y);
+            //if( mouseDown ) {
+            //    sendEvent('mousemove', x, y);
+            //}
+            //sendEvent('mousemove', x, y);
         });
         
         canvas.addEventListener('mousedown', (e) => {

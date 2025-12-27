@@ -314,3 +314,98 @@ def _header(ctx, label_str, is_treenode, opt):
     draw_control_text(ctx, label_str, r, MU_COLOR_TEXT, 0)
     
     return MU_RES_ACTIVE if expanded else 0
+
+
+def canvas(ctx, width, height):
+    """Create a canvas widget for drawing primitives
+    
+    Args:
+        ctx: MicroUI context
+        width: Canvas width
+        height: Canvas height
+    
+    Returns:
+        CanvasContext object with drawing methods
+    """
+    from .layout import layout_next
+    
+    rect = layout_next(ctx)
+    if width > 0 and height > 0:
+        rect.w = width
+        rect.h = height
+    
+    # Draw canvas background
+    draw_rect(ctx, rect, ctx.style.colors[MU_COLOR_WINDOWBG])
+    
+    # Return a canvas context for drawing
+    return CanvasContext(ctx, rect)
+
+
+class CanvasContext:
+    """Canvas context for drawing operations"""
+    
+    def __init__(self, ctx, rect):
+        self.ctx = ctx
+        self.rect = rect
+        self.clip_rect = Rect(0, 0, rect.w, rect.h)
+    
+    def pixel(self, x, y, color):
+        """Draw a pixel at (x, y)"""
+        from .core import CanvasPixelCommand
+        from .drawing import push_command
+        
+        if isinstance(color, tuple):
+            color = Color(color[0], color[1], color[2], 
+                         color[3] if len(color) > 3 else 255)
+        
+        if (0 <= x < self.rect.w and 0 <= y < self.rect.h):
+            cmd = CanvasPixelCommand(self.rect, x, y, color)
+            push_command(self.ctx, cmd)
+    
+    def line(self, x1, y1, x2, y2, color):
+        """Draw a line from (x1, y1) to (x2, y2)"""
+        from .core import CanvasLineCommand
+        from .drawing import push_command
+        
+        if isinstance(color, tuple):
+            color = Color(color[0], color[1], color[2], 
+                         color[3] if len(color) > 3 else 255)
+        
+        cmd = CanvasLineCommand(self.rect, x1, y1, x2, y2, color)
+        push_command(self.ctx, cmd)
+    
+    def rectangle(self, x, y, w, h, color, filled=True):
+        """Draw a rectangle at (x, y) with width w and height h"""
+        from .core import CanvasRectCommand
+        from .drawing import push_command
+        
+        if isinstance(color, tuple):
+            color = Color(color[0], color[1], color[2], 
+                         color[3] if len(color) > 3 else 255)
+        
+        cmd = CanvasRectCommand(self.rect, x, y, w, h, color, filled)
+        push_command(self.ctx, cmd)
+    
+    def circle(self, x, y, radius, color, filled=True):
+        """Draw a circle centered at (x, y) with given radius"""
+        from .core import CanvasCircleCommand
+        from .drawing import push_command
+        
+        if isinstance(color, tuple):
+            color = Color(color[0], color[1], color[2], 
+                         color[3] if len(color) > 3 else 255)
+        
+        cmd = CanvasCircleCommand(self.rect, x, y, radius, color, filled)
+        push_command(self.ctx, cmd)
+    
+    def text(self, x, y, text_str, color):
+        """Draw text at (x, y)"""
+        from .core import CanvasTextCommand
+        from .drawing import push_command
+        
+        if isinstance(color, tuple):
+            color = Color(color[0], color[1], color[2], 
+                         color[3] if len(color) > 3 else 255)
+        
+        cmd = CanvasTextCommand(self.rect, x, y, text_str, color)
+        push_command(self.ctx, cmd)
