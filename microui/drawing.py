@@ -108,9 +108,14 @@ def render_commands(ctx):
     logger.debug(f"Rendering {len(ctx.command_list)} commands")
     
     clip_rect = None
-    
+ 
     for cmd in next_command(ctx):
-        if cmd.type == MU_COMMAND_CLIP:
+        if cmd.type == MU_COMMAND_JUMP:
+            logger.debug(f"Jump to command at {cmd.dst}")
+            # In this simplified version, we just continue
+            continue
+        
+        elif cmd.type == MU_COMMAND_CLIP:
             clip_rect = cmd.rect
             logger.debug(f"Set clip: {clip_rect}")
             
@@ -122,7 +127,82 @@ def render_commands(ctx):
             
         elif cmd.type == MU_COMMAND_ICON:
             _render_icon(ctx, cmd, clip_rect)
+        
+        elif cmd.type == MU_COMMAND_CANVAS_PIXEL:
+            _render_pixel(ctx, cmd, clip_rect)
+        
+        elif cmd.type == MU_COMMAND_CANVAS_LINE:
+            _render_line(ctx, cmd, clip_rect)
+        
+        elif cmd.type == MU_COMMAND_CANVAS_RECT:
+            _render_canvas_rect(ctx, cmd, clip_rect)
+        
+        elif cmd.type == MU_COMMAND_CANVAS_CIRCLE:
+            _render_canvas_circle(ctx, cmd, clip_rect)
+        
+        
+def _render_pixel(ctx, cmd, clip_rect):
+    """Render pixel to framebuffer"""
+    #if clip_rect and not point_in_rect(cmd.pos, clip_rect):
+    #    return
+    
+    rgb565 = cmd.color.to_rgb565()
+    #ctx.framebuffer.pixel(cmd.pos.x, cmd.pos.y, rgb565)
+    ctx.framebuffer.pixel(cmd.x, cmd.y, rgb565)
 
+def _render_line(ctx, cmd, clip_rect):
+    """Render line to framebuffer"""
+    # Simple clipping: skip if both endpoints are outside clip rect
+    #if clip_rect:
+    #    if not (point_in_rect(cmd.start, clip_rect) or point_in_rect(cmd.end, clip_rect)):
+    #        return
+    
+    rgb565 = cmd.color.to_rgb565()
+    #ctx.framebuffer.line(cmd.start.x, cmd.start.y, cmd.end.x, cmd.end.y, rgb565)
+    ctx.framebuffer.line(cmd.x1, cmd.y1, cmd.x2, cmd.y2, rgb565)
+
+def _render_canvas_rect(ctx, cmd, clip_rect):
+    """Render canvas rectangle to framebuffer"""
+    rect = cmd.canvas_rect
+    #if clip_rect:
+    #    rect = intersect_rects(rect, clip_rect)
+    
+    if rect.w <= 0 or rect.h <= 0:
+        return
+    
+    rgb565 = cmd.color.to_rgb565()
+    
+    # Draw rectangle outline
+    #ctx.framebuffer.rect(rect.x, rect.y, rect.w, rect.h, rgb565)
+    ctx.framebuffer.line(rect.x, rect.y, rect.x + rect.w - 1, rect.y, rgb565)
+    # Bottom
+    ctx.framebuffer.line(rect.x, rect.y + rect.h - 1, rect.x + rect.w - 1, rect.y + rect.h - 1, rgb565)
+    # Left
+    ctx.framebuffer.line(rect.x, rect.y, rect.x, rect.y + rect.h - 1, rgb565)
+    # Right
+    ctx.framebuffer.line(rect.x + rect.w - 1, rect.y, rect.x + rect.w - 1, rect.y + rect.h - 1, rgb565)
+
+
+def _render_canvas_circle(ctx, cmd, clip_rect):
+    """Render canvas circle to framebuffer"""
+    #center = cmd.center
+    center_x = cmd.x
+    center_y = cmd.y
+    
+    radius = cmd.radius
+    
+    # Simple bounding box clipping
+    bounding_rect = Rect(center_x - radius, center_y - radius, radius * 2, radius * 2)
+    if clip_rect:
+        bounding_rect = intersect_rects(bounding_rect, clip_rect)
+    
+    if bounding_rect.w <= 0 or bounding_rect.h <= 0:
+        return
+    
+    rgb565 = cmd.color.to_rgb565()
+    
+    # Draw usin ellipse
+    ctx.framebuffer.ellipse(center_x, center_y, radius, radius, rgb565)
 
 def _render_rect(ctx, rect, color, clip_rect):
     """Render rectangle to framebuffer"""

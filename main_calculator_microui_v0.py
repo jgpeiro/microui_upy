@@ -1098,6 +1098,13 @@ def draw_form_ui(ctx, state):
         
         end_window(ctx)
 
+from demo_physics_mru_mrua import update_ui
+from demo_physics_mru_mrua import ui_state
+
+state = ui_state
+draw_form_ui = update_ui
+    
+
 class App:
     """Main application with MicroUI"""
     
@@ -1174,7 +1181,8 @@ class App:
         #draw_settings_ui(self.ctx, state)
         #draw_file_browser_ui(self.ctx, state)
         #draw_media_player_ui(self.ctx, state)
-        draw_form_ui(self.ctx, state)
+        #draw_form_ui(self.ctx, state)
+        draw_form_ui(self.ctx)
         
         
         # End MicroUI frame
@@ -1219,7 +1227,7 @@ class App:
                 n = 1
                 
             else:
-                if( n ):
+                if( 1 or n ):
                     n = 0
                     self._build_ui()
                     self._draw_ui()
