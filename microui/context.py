@@ -23,17 +23,20 @@ def begin(ctx):
     ctx.mouse_delta.x = ctx.mouse_pos.x - ctx.last_mouse_pos.x
     ctx.mouse_delta.y = ctx.mouse_pos.y - ctx.last_mouse_pos.y
     ctx.frame += 1
+    
+    # Initialize clip stack with unclipped rect
+    ctx.clip_stack.push(ctx.unclipped_rect)
 
 
 def end(ctx):
     """End frame"""
     logger.debug(f"End frame {ctx.frame}")
     
-    # Check stacks are empty
+    # Check stacks are empty (clip stack should have 1 item - the base unclipped_rect)
     if ctx.container_stack.idx != 0:
         logger.error("Container stack not empty at end of frame")
-    if ctx.clip_stack.idx != 0:
-        logger.error("Clip stack not empty at end of frame")
+    if ctx.clip_stack.idx != 1:
+        logger.error("Clip stack not properly balanced at end of frame")
     if ctx.id_stack.idx != 0:
         logger.error("ID stack not empty at end of frame")
     if ctx.layout_stack.idx != 0:
@@ -54,6 +57,10 @@ def end(ctx):
         ctx.next_hover_root.zindex < ctx.last_zindex and
         ctx.next_hover_root.zindex >= 0):
         bring_to_front(ctx, ctx.next_hover_root)
+    
+    # Pop base clip rect
+    if ctx.clip_stack.idx > 0:
+        ctx.clip_stack.pop()
     
     # Reset input state
     ctx.key_pressed = 0

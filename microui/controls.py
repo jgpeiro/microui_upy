@@ -13,6 +13,10 @@ logger = logging.getLogger(__name__)
 
 def in_hover_root(ctx):
     """Check if in hover root"""
+    # If no containers, allow interaction (for testing without windows)
+    if ctx.container_stack.idx == 0:
+        return True
+    
     i = ctx.container_stack.idx
     while i > 0:
         i -= 1

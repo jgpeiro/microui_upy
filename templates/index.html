@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MicroUI Web Renderer</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #2e2e2e;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        h1 {
+            margin-bottom: 10px;
+        }
+        
+        #info {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #1e1e1e;
+            border-radius: 5px;
+            min-width: 400px;
+            text-align: center;
+        }
+        
+        #canvas-container {
+            border: 2px solid #555;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+            background-color: #1e1e1e;
+        }
+        
+        canvas {
+            display: block;
+            cursor: pointer;
+        }
+        
+        .status {
+            color: #4caf50;
+            font-weight: bold;
+        }
+        
+        .error {
+            color: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <h1>MicroUI Web Renderer</h1>
+    <div id="info">
+        <div>Status: <span id="status" class="status">Connecting...</span></div>
+        <div>Frame: <span id="frame">0</span></div>
+        <div>Mouse: <span id="mouse">-</span></div>
+        <div>Commands: <span id="commands">0</span></div>
+    </div>
+    
+    <div id="canvas-container">
+        <canvas id="canvas" width="{{ width }}" height="{{ height }}"></canvas>
+    </div>
+    
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const statusEl = document.getElementById('status');
+        const frameEl = document.getElementById('frame');
+        const mouseEl = document.getElementById('mouse');
+        const commandsEl = document.getElementById('commands');
+        
+        let mouseDown = false;
+        let lastMousePos = { x: 0, y: 0 };
+        
+        // Command type constants (match Python)
+        const MU_COMMAND_JUMP = 1;
+        const MU_COMMAND_CLIP = 2;
+        const MU_COMMAND_RECT = 3;
+        const MU_COMMAND_TEXT = 4;
+        const MU_COMMAND_ICON = 5;
+        
+        // Icon constants
+        const MU_ICON_CLOSE = 1;
+        const MU_ICON_CHECK = 2;
+        const MU_ICON_COLLAPSED = 3;
+        const MU_ICON_EXPANDED = 4;
+        
+        // Current clip rect
+        let clipRect = null;
+        
+        function sendEvent(type, x, y, button = 0) {
+            fetch('/api/render', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ type, x, y, button })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    renderCommands(data.commands);
+                    frameEl.textContent = data.frame;
+                    commandsEl.textContent = data.commands.length;
+                    statusEl.textContent = 'Connected';
+                    statusEl.className = 'status';
+                } else {
+                    console.error('Server error:', data.message);
+                    statusEl.textContent = 'Error: ' + data.message;
+                    statusEl.className = 'error';
+                }
+            })
+            .catch(error => {
+                console.error('Network error:', error);
+                statusEl.textContent = 'Connection error';
+                statusEl.className = 'error';
+            });
+        }
+        
+        function renderCommands(commands) {
+            // Clear canvas
+            ctx.fillStyle = '#1e1e1e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Reset clip
+            ctx.restore();
+            ctx.save();
+            clipRect = null;
+            
+            // Process commands
+            for (const cmd of commands) {
+                switch (cmd.type) {
+                    case MU_COMMAND_CLIP:
+                        setClip(cmd.rect);
+                        break;
+                    
+                    case MU_COMMAND_RECT:
+                        drawRect(cmd.rect, cmd.color);
+                        break;
+                    
+                    case MU_COMMAND_TEXT:
+                        drawText(cmd.text, cmd.pos, cmd.color);
+                        break;
+                    
+                    case MU_COMMAND_ICON:
+                        drawIcon(cmd.icon_id, cmd.rect, cmd.color);
+                        break;
+                }
+            }
+        }
+        
+        function setClip(rect) {
+            ctx.restore();
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(rect.x, rect.y, rect.w, rect.h);
+            ctx.clip();
+            clipRect = rect;
+        }
+        
+        function drawRect(rect, color) {
+            ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${color.a / 255})`;
+            ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+        }
+        
+        function drawText(text, pos, color) {
+            ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${color.a / 255})`;
+            ctx.font = '10px monospace';
+            ctx.fillText(text, pos.x, pos.y + 8);
+        }
+        
+        function drawIcon(iconId, rect, color) {
+            ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${color.a / 255})`;
+            ctx.strokeStyle = ctx.fillStyle;
+            ctx.lineWidth = 1;
+            
+            const cx = rect.x + rect.w / 2;
+            const cy = rect.y + rect.h / 2;
+            const size = Math.min(rect.w, rect.h) / 2;
+            
+            ctx.beginPath();
+            
+            switch (iconId) {
+                case MU_ICON_CLOSE:
+                    // X symbol
+                    ctx.moveTo(cx - size/2, cy - size/2);
+                    ctx.lineTo(cx + size/2, cy + size/2);
+                    ctx.moveTo(cx + size/2, cy - size/2);
+                    ctx.lineTo(cx - size/2, cy + size/2);
+                    ctx.stroke();
+                    break;
+                
+                case MU_ICON_CHECK:
+                    // Checkmark
+                    ctx.moveTo(cx - size/2, cy);
+                    ctx.lineTo(cx - size/4, cy + size/2);
+                    ctx.lineTo(cx + size/2, cy - size/2);
+                    ctx.stroke();
+                    break;
+                
+                case MU_ICON_COLLAPSED:
+                    // Right arrow
+                    ctx.moveTo(cx - size/3, cy - size/2);
+                    ctx.lineTo(cx + size/3, cy);
+                    ctx.lineTo(cx - size/3, cy + size/2);
+                    ctx.closePath();
+                    ctx.fill();
+                    break;
+                
+                case MU_ICON_EXPANDED:
+                    // Down arrow
+                    ctx.moveTo(cx - size/2, cy - size/3);
+                    ctx.lineTo(cx, cy + size/3);
+                    ctx.lineTo(cx + size/2, cy - size/3);
+                    ctx.closePath();
+                    ctx.fill();
+                    break;
+            }
+        }
+        
+        // Mouse event handlers
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor(e.clientX - rect.left);
+            const y = Math.floor(e.clientY - rect.top);
+            
+            lastMousePos = { x, y };
+            mouseEl.textContent = `(${x}, ${y})`;
+            
+            sendEvent('mousemove', x, y);
+        });
+        
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor(e.clientX - rect.left);
+            const y = Math.floor(e.clientY - rect.top);
+            
+            mouseDown = true;
+            sendEvent('mousedown', x, y, e.button);
+            e.preventDefault();
+        });
+        
+        canvas.addEventListener('mouseup', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor(e.clientX - rect.left);
+            const y = Math.floor(e.clientY - rect.top);
+            
+            mouseDown = false;
+            sendEvent('mouseup', x, y, e.button);
+            e.preventDefault();
+        });
+        
+        canvas.addEventListener('mouseleave', (e) => {
+            if (mouseDown) {
+                mouseDown = false;
+                sendEvent('mouseup', lastMousePos.x, lastMousePos.y, 0);
+            }
+        });
+        
+        // Prevent context menu on right click
+        canvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        });
+        
+        // Initialize on load
+        fetch('/api/init')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    renderCommands(data.commands);
+                    frameEl.textContent = data.frame;
+                    commandsEl.textContent = data.commands.length;
+                    statusEl.textContent = 'Connected';
+                    statusEl.className = 'status';
+                } else {
+                    statusEl.textContent = 'Init error';
+                    statusEl.className = 'error';
+                }
+            })
+            .catch(error => {
+                console.error('Init error:', error);
+                statusEl.textContent = 'Connection error';
+                statusEl.className = 'error';
+            });
+    </script>
+</body>
+</html>

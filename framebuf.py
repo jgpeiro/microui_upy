@@ -1,8 +1,9 @@
-
-class Framebuffer:
+RGB565 = 1
+class FrameBuffer:
     """Mock framebuffer for testing."""
-    
-    def __init__(self):
+    RGB565 = 1
+    def __init__(self, a,b,c,d):
+        self.RGB565 = 1
         self.operations = []
     
     def fill_rect(self, x, y, w, h, color):
