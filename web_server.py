@@ -119,8 +119,8 @@ def _update_ui(ctx):
         
         end_window(ctx)
 
-from demo_4_ui import update_ui
-from demo_4_ui import ui_state
+from demo_physics_mru_mrua import update_ui
+from demo_physics_mru_mrua import ui_state
 
 def serialize_commands(ctx):
     """Convert command list to JSON-serializable format"""

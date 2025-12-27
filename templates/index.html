@@ -57,6 +57,12 @@
         <div>Frame: <span id="frame">0</span></div>
         <div>Mouse: <span id="mouse">-</span></div>
         <div>Commands: <span id="commands">0</span></div>
+        <div>
+            <label>
+                <input type="checkbox" id="autoRefresh" checked>
+                Auto Refresh (100ms)
+            </label>
+        </div>
     </div>
     
     <div id="canvas-container">
@@ -73,6 +79,7 @@
         
         let mouseDown = false;
         let lastMousePos = { x: 0, y: 0 };
+        let autoRefreshInterval = null;
         
         // Command type constants (match Python)
         const MU_COMMAND_JUMP = 1;
@@ -337,6 +344,34 @@
             e.preventDefault();
         });
         
+        // Auto-refresh functionality
+        const autoRefreshCheckbox = document.getElementById('autoRefresh');
+        
+        function startAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+            autoRefreshInterval = setInterval(() => {
+                // Send a mousemove event with the last known position
+                sendEvent('mousemove', lastMousePos.x, lastMousePos.y);
+            }, 100);
+        }
+        
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+            }
+        }
+        
+        autoRefreshCheckbox.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                startAutoRefresh();
+            } else {
+                stopAutoRefresh();
+            }
+        });
+        
         // Initialize on load
         fetch('/api/init')
             .then(response => response.json())
@@ -347,6 +382,11 @@
                     commandsEl.textContent = data.commands.length;
                     statusEl.textContent = 'Connected';
                     statusEl.className = 'status';
+                    
+                    // Start auto-refresh if checkbox is checked
+                    if (autoRefreshCheckbox.checked) {
+                        startAutoRefresh();
+                    }
                 } else {
                     statusEl.textContent = 'Init error';
                     statusEl.className = 'error';
